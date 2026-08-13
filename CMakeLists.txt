@@ -4,11 +4,13 @@ project(autodiff LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-
 file(GLOB_RECURSE adsrc
-	"src/*.h"
-	"src/*.cpp"
+	"test/*.h"
+	"test/*.cpp"
 )
+
+add_library(ad INTERFACE)
+target_include_directories(ad INTERFACE .)
 
 include(CheckCXXCompilerFlag)
 
@@ -25,3 +27,4 @@ if(temp2)
 endif()
 
 add_executable(run ${adsrc})
+target_link_libraries(run PRIVATE ad)
