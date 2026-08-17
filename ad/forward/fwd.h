@@ -24,9 +24,10 @@ struct Fwd {
 		grads.fill(0);
 	}
 
-	Fwd(T val) {
+	template <typename T2>
+	Fwd(T2 val) {
 		grads.fill(0);
-		grads[0] = val;
+		grads[0] = static_cast<T>(val);
 	}
 
 	Fwd(const std::array<T, N + 1> & ngrads): grads(ngrads) {}
@@ -37,6 +38,37 @@ struct Fwd {
 	}
 };
 
+/* Forward declarations */
+
+template <typename T, std::size_t N>
+Fwd<T, N> reciprocal(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> exp(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> exp2(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> expm1(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> log(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> log10(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> log2(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> log1p(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> pow(const Fwd<T, N> & base, const Fwd<T, N> & exponent);
+
+template <typename T, std::size_t N>
+Fwd<T, N> sqrt(const Fwd<T, N> & x);
 /* Fwd funcs */
 
 template <typename T, std::size_t N>
@@ -50,25 +82,6 @@ Fwd<T, N> reciprocal(const Fwd<T, N> & x) {
 			out.grads[i] -= x.grads[j] * out.grads[i - j];
 		}
 		out.grads[i] /= x.grads[0];
-	}
-
-	return out;
-}
-
-template <typename T, std::size_t N>
-Fwd<T, N> sqrt(const Fwd<T, N> & x) {
-	Fwd<T, N> out;
-
-	out.grads[0] = std::sqrt(x.grads[0]);
-
-	for (std::size_t i = 1; i <= N; i++) {
-		out.grads[i] = x.grads[i];
-
-		for (std::size_t j = 1; j < i; j++) {
-			out.grads[i] -= out.grads[j] * out.grads[i - j];
-		}
-
-		out.grads[i] /= 2 * out.grads[0];
 	}
 
 	return out;
@@ -90,12 +103,83 @@ Fwd<T, N> exp(const Fwd<T, N> & x) {
 	return out;
 }
 
+template <typename T, std::size_t N>
+Fwd<T, N> exp2(const Fwd<T, N> & x) {
+	return pow(2, x);
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> expm1(const Fwd<T, N> & x) {
+	return exp(x) - T(1);
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> log(const Fwd<T, N> & x) {
+	Fwd<T, N> out;
+
+	out.grads[0] = std::log(x.grads[0]);
+
+	for (std::size_t i = 1; i <= N; i++) {
+		out.grads[i] = i * x.grads[i];
+		for (std::size_t j = 1; j < i; j++) {
+			out.grads[i] -= j * out.grads[j] * x.grads[i - j];
+		}
+
+		out.grads[i] /= i * x.grads[0];
+	}
+
+	return out;
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> log10(const Fwd<T, N> & x) {
+	const T invlog10 = 1 / std::log(10);
+
+	return invlog10 * log(x);
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> log2(const Fwd<T, N> & x) {
+	const T invlog2 = 1 / std::log(2);
+
+	return invlog2 * log(x);
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> log1p(const Fwd<T, N> & x) {
+	return log(T(1) + x);
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> pow(const Fwd<T, N> & base, const Fwd<T, N> & exponent) {
+	return exp(log(base) * exponent);
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> sqrt(const Fwd<T, N> & x) {
+	Fwd<T, N> out;
+
+	out.grads[0] = std::sqrt(x.grads[0]);
+
+	for (std::size_t i = 1; i <= N; i++) {
+		out.grads[i] = x.grads[i];
+
+		for (std::size_t j = 1; j < i; j++) {
+			out.grads[i] -= out.grads[j] * out.grads[i - j];
+		}
+
+		out.grads[i] /= 2 * out.grads[0];
+	}
+
+	return out;
+}
+
 /* Fwd operators */
 
 // Addition
-template <typename T1, typename T2, std::size_t N>
-Fwd<T1, N> operator+(const Fwd<T1, N> & lhs, const Fwd<T2, N> & rhs) {
-	Fwd<T1, N> out;
+template <typename T, std::size_t N>
+Fwd<T, N> operator+(const Fwd<T, N> & lhs, const Fwd<T, N> & rhs) {
+	Fwd<T, N> out;
 
 	for (std::size_t i = 0; i <= N; i++) {
 		out.grads[i] = lhs.grads[i] + rhs.grads[i];
@@ -103,15 +187,14 @@ Fwd<T1, N> operator+(const Fwd<T1, N> & lhs, const Fwd<T2, N> & rhs) {
 
 	return out;
 }
-
-template <typename T1, typename T2, std::size_t N>
-Fwd<T2, N> operator+(const T1 & lhs, const Fwd<T2, N> & rhs) {
+template <typename T, std::size_t N>
+Fwd<T, N> operator+(const T & lhs, const Fwd<T, N> & rhs) {
 	return rhs + lhs;
 }
 
-template <typename T1, typename T2, std::size_t N>
-Fwd<T1, N> operator+(const Fwd<T1, N> & lhs, const T2 & rhs) {
-	return lhs + Fwd<T2, N>(rhs);
+template <typename T, std::size_t N>
+Fwd<T, N> operator+(const Fwd<T, N> & lhs, const T & rhs) {
+	return lhs + Fwd<T, N>(rhs);
 }
 
 // Unary plus
@@ -121,14 +204,8 @@ Fwd<T, N> & operator+(Fwd<T, N> & val) {
 }
 
 // Addition assignment
-template <typename T1, typename T2, std::size_t N>
-Fwd<T1, N> & operator+=(Fwd<T1, N> & lhs, const Fwd<T2, N> & rhs) {
-	lhs = lhs + rhs;
-	return lhs;
-}
-
-template <typename T1, typename T2, std::size_t N>
-Fwd<T1, N> & operator+=(Fwd<T1, N> & lhs, const T2 & rhs) {
+template <typename T, typename T2, std::size_t N>
+Fwd<T, N> & operator+=(Fwd<T, N> & lhs, const T2 & rhs) {
 	lhs = lhs + rhs;
 	return lhs;
 }
@@ -149,18 +226,18 @@ Fwd<T, N> operator++(Fwd<T, N> & val, int) {
 }
 
 // Subtraction
-template <typename T1, typename T2, std::size_t N>
-Fwd<T1, N> operator-(const Fwd<T1, N> & lhs, const Fwd<T2, N> & rhs) {
+template <typename T, std::size_t N>
+Fwd<T, N> operator-(const Fwd<T, N> & lhs, const Fwd<T, N> & rhs) {
 	return lhs + (-rhs);
 }
 
-template <typename T1, typename T2, std::size_t N>
-Fwd<T2, N> operator-(const T1 & lhs, const Fwd<T2, N> & rhs) {
+template <typename T, std::size_t N>
+Fwd<T, N> operator-(const T & lhs, const Fwd<T, N> & rhs) {
 	return lhs + (-rhs);
 }
 
-template <typename T1, typename T2, std::size_t N>
-Fwd<T1, N> operator-(const Fwd<T1, N> & lhs, const T2 & rhs) {
+template <typename T, std::size_t N>
+Fwd<T, N> operator-(const Fwd<T, N> & lhs, const T & rhs) {
 	return lhs + (-rhs);
 }
 
@@ -176,14 +253,8 @@ Fwd<T, N> operator-(const Fwd<T, N> & val) {
 }
 
 // Subtraction assignment
-template <typename T1, typename T2, std::size_t N>
-Fwd<T1, N> & operator-=(Fwd<T1, N> & lhs, const Fwd<T2, N> & rhs) {
-	lhs = lhs - rhs;
-	return lhs;
-}
-
-template <typename T1, typename T2, std::size_t N>
-Fwd<T1, N> & operator-=(Fwd<T1, N> & lhs, const T2 & rhs) {
+template <typename T, typename T2, std::size_t N>
+Fwd<T, N> & operator-=(Fwd<T, N> & lhs, const T2 & rhs) {
 	lhs = lhs - rhs;
 	return lhs;
 }
@@ -204,9 +275,9 @@ Fwd<T, N> operator--(Fwd<T, N> & val, int) {
 }
 
 // Multiplication
-template<typename T1, typename T2, std::size_t N>
-Fwd<T1, N> operator*(const Fwd<T1, N> & lhs, const Fwd<T2, N> & rhs) {
-	Fwd<T1, N> out;
+template <typename T, std::size_t N>
+Fwd<T, N> operator*(const Fwd<T, N> & lhs, const Fwd<T, N> & rhs) {
+	Fwd<T, N> out;
 
 	for (std::size_t i = 0; i <= N; i++) {
 		for (std::size_t j = 0; i + j <= N; j++) {
@@ -217,54 +288,42 @@ Fwd<T1, N> operator*(const Fwd<T1, N> & lhs, const Fwd<T2, N> & rhs) {
 	return out;
 }
 
-template<typename T1, typename T2, std::size_t N>
-Fwd<T2, N> operator*(const T1 & lhs, const Fwd<T2, N> & rhs) {
+template <typename T, std::size_t N>
+Fwd<T, N> operator*(const T & lhs, const Fwd<T, N> & rhs) {
 	return rhs * lhs;
 }
 
-template<typename T1, typename T2, std::size_t N>
-Fwd<T1, N> operator*(const Fwd<T1, N> & lhs, const T2 & rhs) {
-	return lhs * Fwd<T2, N>(rhs);
+template <typename T, std::size_t N>
+Fwd<T, N> operator*(const Fwd<T, N> & lhs, const T & rhs) {
+	return lhs * Fwd<T, N>(rhs);
 }
 
 // Multiplication assignment
-template<typename T1, typename T2, std::size_t N>
-Fwd<T1, N> & operator*=(Fwd<T1, N> & lhs, const Fwd<T2, N> & rhs) {
-	lhs = lhs * rhs;
-	return lhs;
-}
-
-template<typename T1, typename T2, std::size_t N>
-Fwd<T1, N> & operator*=(Fwd<T1, N> & lhs, const T2 & rhs) {
+template<typename T, typename T2, std::size_t N>
+Fwd<T, N> & operator*=(Fwd<T, N> & lhs, const T2 & rhs) {
 	lhs = lhs * rhs;
 	return lhs;
 }
 
 // Division
-template<typename T1, typename T2, std::size_t N>
-Fwd<T1, N> operator/(const Fwd<T1, N> & lhs, const Fwd<T2, N> & rhs) {
+template <typename T, std::size_t N>
+Fwd<T, N> operator/(const Fwd<T, N> & lhs, const Fwd<T, N> & rhs) {
 	return lhs * reciprocal(rhs);
 }
 
-template<typename T1, typename T2, std::size_t N>
-Fwd<T2, N> operator/(const T1 & lhs, const Fwd<T2, N> & rhs) {
+template <typename T, std::size_t N>
+Fwd<T, N> operator/(const T & lhs, const Fwd<T, N> & rhs) {
 	return lhs * reciprocal(rhs);
 }
 
-template<typename T1, typename T2, std::size_t N>
-Fwd<T1, N> operator/(const Fwd<T1, N> & lhs, const T2 & rhs) {
+template <typename T, std::size_t N>
+Fwd<T, N> operator/(const Fwd<T, N> & lhs, const T & rhs) {
 	return lhs * (1 / rhs);
 }
 
 // Division assignment
-template<typename T1, typename T2, std::size_t N>
-Fwd<T1, N> & operator/=(Fwd<T1, N> & lhs, const Fwd<T2, N> & rhs) {
-	lhs = lhs / rhs;
-	return lhs;
-}
-
-template<typename T1, typename T2, std::size_t N>
-Fwd<T1, N> & operator/=(Fwd<T1, N> & lhs, const T2 & rhs) {
+template<typename T, typename T2, std::size_t N>
+Fwd<T, N> & operator/=(Fwd<T, N> & lhs, const T2 & rhs) {
 	lhs = lhs / rhs;
 	return lhs;
 }
@@ -362,13 +421,6 @@ template<typename T, std::size_t N>
 bool operator!(const Fwd<T, N> & val) {
 	return !(val.grads[0]);
 }
-
-// Stream insertion
-
-
-/*
-free function -> std::ostream & operator<<( std::ostream & os, T const & value )
-*/
 
 /* Default dual type */
 using fwd = Fwd<double, 1>;

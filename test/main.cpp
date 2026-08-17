@@ -2,19 +2,22 @@
 
 #include <ad/ad.h>
 
-ad::Fwd<double, 4> f(ad::Fwd<double, 4> x) {
-	return ad::exp(2 * x);
+const int derindex = 4;
+
+ad::Fwd<double, derindex> f(ad::Fwd<double, derindex> x) {
+	ad::Fwd<double, derindex> y = x, z = 2;
+	y /= z;
+
+	return ad::expm1(ad::sqrt(y));
 }
 
 int main() {
-	ad::Fwd<double, 4> x = 0.5;
+	ad::Fwd<double, derindex> x = 0.5;
 	x.grads[1] = 1;
 
-	ad::Fwd<double, 4> y = f(x);
+	ad::Fwd<double, derindex> y = f(x);
 
-	std::cout << y.derivative(0) << "\n";
-	std::cout << y.derivative(1) << "\n";
-	std::cout << y.derivative(2) << "\n";
-	std::cout << y.derivative(3) << "\n";
-	std::cout << y.derivative(4) << "\n";
+	for (int i = 0; i <= derindex; i++) {
+		std::cout << y.derivative(i) << "\n";
+	}
 }
