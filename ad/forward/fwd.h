@@ -9,6 +9,26 @@
 
 namespace ad {
 
+/* cmath */
+using std::abs;
+using std::acos;
+using std::asin;
+using std::atan;
+using std::atan2;
+using std::cos;
+using std::exp;
+using std::log10;
+using std::log;
+using std::pow;
+using std::sin;
+using std::sqrt;
+using std::tan;
+using std::cosh;
+using std::sinh;
+using std::tanh;
+using std::erf;
+using std::hypot;
+
 /* Fwd */
 template <typename T, std::size_t N>
 struct Fwd {
@@ -66,6 +86,10 @@ Fwd<T, N> log1p(const Fwd<T, N> & x);
 
 template <typename T, std::size_t N>
 Fwd<T, N> pow(const Fwd<T, N> & base, const Fwd<T, N> & exponent);
+template <typename T, std::size_t N>
+Fwd<T, N> pow(const T & base, const Fwd<T, N> & exponent);
+template <typename T, std::size_t N>
+Fwd<T, N> pow(const Fwd<T, N> & base, const T & exponent);
 
 template <typename T, std::size_t N>
 Fwd<T, N> sqrt(const Fwd<T, N> & x);
@@ -91,7 +115,7 @@ template <typename T, std::size_t N>
 Fwd<T, N> exp(const Fwd<T, N> & x) {
 	Fwd<T, N> out;
 
-	out.grads[0] = std::exp(x.grads[0]);
+	out.grads[0] = exp(x.grads[0]);
 
 	for (std::size_t i = 1; i <= N; i++) {
 		for (std::size_t j = 1; j <= i; j++) {
@@ -105,7 +129,7 @@ Fwd<T, N> exp(const Fwd<T, N> & x) {
 
 template <typename T, std::size_t N>
 Fwd<T, N> exp2(const Fwd<T, N> & x) {
-	return pow(2, x);
+	return pow(T(2), x);
 }
 
 template <typename T, std::size_t N>
@@ -117,7 +141,7 @@ template <typename T, std::size_t N>
 Fwd<T, N> log(const Fwd<T, N> & x) {
 	Fwd<T, N> out;
 
-	out.grads[0] = std::log(x.grads[0]);
+	out.grads[0] = log(x.grads[0]);
 
 	for (std::size_t i = 1; i <= N; i++) {
 		out.grads[i] = i * x.grads[i];
@@ -133,14 +157,14 @@ Fwd<T, N> log(const Fwd<T, N> & x) {
 
 template <typename T, std::size_t N>
 Fwd<T, N> log10(const Fwd<T, N> & x) {
-	const T invlog10 = 1 / std::log(10);
+	const T invlog10 = 1 / log(10);
 
 	return invlog10 * log(x);
 }
 
 template <typename T, std::size_t N>
 Fwd<T, N> log2(const Fwd<T, N> & x) {
-	const T invlog2 = 1 / std::log(2);
+	const T invlog2 = 1 / log(2);
 
 	return invlog2 * log(x);
 }
@@ -156,10 +180,20 @@ Fwd<T, N> pow(const Fwd<T, N> & base, const Fwd<T, N> & exponent) {
 }
 
 template <typename T, std::size_t N>
+Fwd<T, N> pow(const T & base, const Fwd<T, N> & exponent) {
+	return exp(log(base) * exponent);
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> pow(const Fwd<T, N> & base, const T & exponent) {
+	return exp(log(base) * exponent);
+}
+
+template <typename T, std::size_t N>
 Fwd<T, N> sqrt(const Fwd<T, N> & x) {
 	Fwd<T, N> out;
 
-	out.grads[0] = std::sqrt(x.grads[0]);
+	out.grads[0] = sqrt(x.grads[0]);
 
 	for (std::size_t i = 1; i <= N; i++) {
 		out.grads[i] = x.grads[i];
