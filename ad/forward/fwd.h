@@ -93,6 +93,10 @@ Fwd<T, N> pow(const Fwd<T, N> & base, const T & exponent);
 
 template <typename T, std::size_t N>
 Fwd<T, N> sqrt(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> cbrt(const Fwd<T, N> & x);
+
 /* Fwd funcs */
 
 template <typename T, std::size_t N>
@@ -191,21 +195,12 @@ Fwd<T, N> pow(const Fwd<T, N> & base, const T & exponent) {
 
 template <typename T, std::size_t N>
 Fwd<T, N> sqrt(const Fwd<T, N> & x) {
-	Fwd<T, N> out;
+	return pow(x, T(0.5));
+}
 
-	out.grads[0] = sqrt(x.grads[0]);
-
-	for (std::size_t i = 1; i <= N; i++) {
-		out.grads[i] = x.grads[i];
-
-		for (std::size_t j = 1; j < i; j++) {
-			out.grads[i] -= out.grads[j] * out.grads[i - j];
-		}
-
-		out.grads[i] /= 2 * out.grads[0];
-	}
-
-	return out;
+template <typename T, std::size_t N>
+Fwd<T, N> cbrt(const Fwd<T, N> & x) {
+	return pow(x, T(1.0 / 3.0));
 }
 
 /* Fwd operators */

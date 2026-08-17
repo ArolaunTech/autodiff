@@ -39,10 +39,6 @@ lerp
 
 exp
 ...
-sqrtl
-
-cbrt
-cbrtf
 cbrtl
 
 hypot
