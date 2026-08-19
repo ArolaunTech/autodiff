@@ -97,6 +97,23 @@ Fwd<T, N> sqrt(const Fwd<T, N> & x);
 template <typename T, std::size_t N>
 Fwd<T, N> cbrt(const Fwd<T, N> & x);
 
+template <typename T, std::size_t N>
+Fwd<T, N> hypot(const Fwd<T, N> & x, const Fwd<T, N> & y);
+template <typename T, std::size_t N>
+Fwd<T, N> hypot(const Fwd<T, N> & x, const Fwd<T, N> & y, const Fwd<T, N> & z);
+
+template <typename T, std::size_t N>
+std::array<Fwd<T, N>, 2> sincos(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> sin(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> cos(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> tan(const Fwd<T, N> & x);
+
 /* Fwd funcs */
 
 template <typename T, std::size_t N>
@@ -201,6 +218,54 @@ Fwd<T, N> sqrt(const Fwd<T, N> & x) {
 template <typename T, std::size_t N>
 Fwd<T, N> cbrt(const Fwd<T, N> & x) {
 	return pow(x, T(1.0 / 3.0));
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> hypot(const Fwd<T, N> & x, const Fwd<T, N> & y) {
+	return sqrt(x * x + y * y);
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> hypot(const Fwd<T, N> & x, const Fwd<T, N> & y, const Fwd<T, N> & z) {
+	return sqrt(x * x + y * y + z * z);
+}
+
+template <typename T, std::size_t N>
+std::array<Fwd<T, N>, 2> sincos(const Fwd<T, N> & x) {
+	std::array<Fwd<T, N>, 2> out;
+
+	// out[0] == sin(x), out[1] == cos(x)
+
+	out[0].grads[0] = sin(x.grads[0]);
+	out[1].grads[0] = cos(x.grads[0]);
+
+	for (std::size_t i = 1; i <= N; i++) {
+		for (std::size_t j = 1; j <= i; j++) {
+			out[0].grads[i] += j * x.grads[j] * out[1].grads[i - j];
+			out[1].grads[i] -= j * x.grads[j] * out[0].grads[i - j];
+		}
+		out[0].grads[i] /= i;
+		out[1].grads[i] /= i;
+	}
+
+	return out;
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> sin(const Fwd<T, N> & x) {
+	return sincos(x)[0];
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> cos(const Fwd<T, N> & x) {
+	return sincos(x)[1];
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> tan(const Fwd<T, N> & x) {
+	std::array<Fwd<T, N>, 2> sc = sincos(x);
+
+	return sc[0] / sc[1];
 }
 
 /* Fwd operators */

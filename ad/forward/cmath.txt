@@ -39,22 +39,6 @@ lerp
 
 exp
 ...
-cbrtl
-
-hypot
-hypotf
-hypotl
-
-sin
-sinf
-sinl
-
-cos
-cosf
-cosl
-
-tan
-tanf
 tanl
 
 asin

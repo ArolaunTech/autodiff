@@ -5,14 +5,11 @@
 const int derindex = 4;
 
 ad::Fwd<double, derindex> f(ad::Fwd<double, derindex> x) {
-	ad::Fwd<double, derindex> y = x, z = 2;
-	y /= z;
-
-	return ad::exp2(ad::sqrt(y));
+	return ad::tan(x);
 }
 
 int main() {
-	ad::Fwd<double, derindex> x = 0.5;
+	ad::Fwd<double, derindex> x = 0;
 	x.grads[1] = 1;
 
 	ad::Fwd<double, derindex> y = f(x);
