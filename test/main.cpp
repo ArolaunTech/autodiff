@@ -2,10 +2,10 @@
 
 #include <ad/ad.h>
 
-const int derindex = 4;
+const int derindex = 25;
 
 ad::Fwd<double, derindex> f(ad::Fwd<double, derindex> x) {
-	return ad::tan(x);
+	return ad::asin(x);
 }
 
 int main() {

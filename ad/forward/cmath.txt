@@ -39,18 +39,6 @@ lerp
 
 exp
 ...
-tanl
-
-asin
-asinf
-asinl
-
-acos
-acosf
-acosl
-
-atan
-atanf
 atanl
 
 atan2
