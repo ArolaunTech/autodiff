@@ -124,6 +124,15 @@ Fwd<T, N> acos(const Fwd<T, N> & x);
 template <typename T, std::size_t N>
 Fwd<T, N> atan(const Fwd<T, N> & x);
 
+template <typename T, std::size_t N>
+Fwd<T, N> sinh(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> cosh(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> tanh(const Fwd<T, N> & x);
+
 /* Fwd funcs */
 
 template <typename T, std::size_t N>
@@ -323,6 +332,21 @@ Fwd<T, N> atan(const Fwd<T, N> & x) {
 	}
 
 	return out;
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> sinh(const Fwd<T, N> & x) {
+	return T(0.5) * (exp(x) - exp(-x));
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> cosh(const Fwd<T, N> & x) {
+	return T(0.5) * (exp(x) + exp(-x));
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> tanh(const Fwd<T, N> & x) {
+	return sinh(x) / cosh(x);
 }
 
 /* Fwd operators */

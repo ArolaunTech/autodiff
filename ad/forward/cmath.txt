@@ -46,15 +46,7 @@ atan2f
 atan2l
 
 sinh
-sinhf
-sinhl
-
-cosh
-coshf
-coshl
-
-tanh
-tanhf
+...
 tanhl
 
 asinh
