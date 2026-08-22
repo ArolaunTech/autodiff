@@ -2,6 +2,8 @@
 #include <limits>
 #include <cmath>
 #include <numbers>
+#include <concepts>
+#include <type_traits>
 
 #include "../common/factorial.h"
 
@@ -59,6 +61,16 @@ struct Fwd {
 	}
 };
 
+/* Forward concept */
+template <typename T>
+struct Fwdcheck : std::false_type {};
+
+template <typename T, std::size_t N>
+struct Fwdcheck<Fwd<T, N> > : std::true_type {};
+
+template <typename T>
+concept isFwd = Fwdcheck<T>::value;
+
 /* Forward declarations */
 
 template <typename T, std::size_t N>
@@ -69,6 +81,10 @@ Fwd<T, N> integral(const T & x0, const Fwd<T, N> & x);
 
 template <typename T, std::size_t N>
 Fwd<T, N> reciprocal(const Fwd<T, N> & x);
+
+template <typename A, typename B, typename T>
+requires isFwd<A> || isFwd<B> || isFwd<T>
+auto lerp(const A & a, const B & b, const T & t);
 
 template <typename T, std::size_t N>
 Fwd<T, N> exp(const Fwd<T, N> & x);
@@ -91,12 +107,9 @@ Fwd<T, N> log2(const Fwd<T, N> & x);
 template <typename T, std::size_t N>
 Fwd<T, N> log1p(const Fwd<T, N> & x);
 
-template <typename T, std::size_t N>
-Fwd<T, N> pow(const Fwd<T, N> & base, const Fwd<T, N> & exponent);
-template <typename T, std::size_t N>
-Fwd<T, N> pow(const T & base, const Fwd<T, N> & exponent);
-template <typename T, std::size_t N>
-Fwd<T, N> pow(const Fwd<T, N> & base, const T & exponent);
+template <typename A, typename B>
+requires isFwd<A> || isFwd<B>
+auto pow(const A & base, const B & exponent);
 
 template <typename T, std::size_t N>
 Fwd<T, N> sqrt(const Fwd<T, N> & x);
@@ -197,6 +210,12 @@ Fwd<T, N> reciprocal(const Fwd<T, N> & x) {
 	return out;
 }
 
+template <typename A, typename B, typename T>
+requires isFwd<A> || isFwd<B> || isFwd<T>
+auto lerp(const A & a, const B & b, const T & t) {
+	return a + (b - a) * t;
+}
+
 template <typename T, std::size_t N>
 Fwd<T, N> exp(const Fwd<T, N> & x) {
 	Fwd<T, N> out;
@@ -225,20 +244,7 @@ Fwd<T, N> expm1(const Fwd<T, N> & x) {
 
 template <typename T, std::size_t N>
 Fwd<T, N> log(const Fwd<T, N> & x) {
-	Fwd<T, N> out;
-
-	out.grads[0] = log(x.grads[0]);
-
-	for (std::size_t i = 1; i <= N; i++) {
-		out.grads[i] = i * x.grads[i];
-		for (std::size_t j = 1; j < i; j++) {
-			out.grads[i] -= j * out.grads[j] * x.grads[i - j];
-		}
-
-		out.grads[i] /= i * x.grads[0];
-	}
-
-	return out;
+	return integral(log(x.grads[0]), derivative(x) * reciprocal(x));
 }
 
 template <typename T, std::size_t N>
@@ -260,19 +266,10 @@ Fwd<T, N> log1p(const Fwd<T, N> & x) {
 	return log(T(1) + x);
 }
 
-template <typename T, std::size_t N>
-Fwd<T, N> pow(const Fwd<T, N> & base, const Fwd<T, N> & exponent) {
+template <typename A, typename B>
+requires isFwd<A> || isFwd<B>
+auto pow(const A & base, const B & exponent) {
 	return exp(log(base) * exponent);
-}
-
-template <typename T, std::size_t N>
-Fwd<T, N> pow(const T & base, const Fwd<T, N> & exponent) {
-	return pow(Fwd<T, N>(base), exponent);
-}
-
-template <typename T, std::size_t N>
-Fwd<T, N> pow(const Fwd<T, N> & base, const T & exponent) {
-	return pow(base, Fwd<T, N>(exponent));
 }
 
 template <typename T, std::size_t N>
