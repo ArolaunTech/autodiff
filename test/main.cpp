@@ -5,7 +5,7 @@
 const int derindex = 25;
 
 ad::Fwd<double, derindex> f(ad::Fwd<double, derindex> x) {
-	return ad::tanh(x);
+	return ad::acosh(x + 5.0);
 }
 
 int main() {

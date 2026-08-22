@@ -47,18 +47,6 @@ atan2l
 
 sinh
 ...
-tanhl
-
-asinh
-asinhf
-asinhl
-
-acosh
-acoshf
-acoshl
-
-atanh
-atanhf
 atanhl
 
 erf
