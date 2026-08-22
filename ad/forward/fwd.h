@@ -62,6 +62,12 @@ struct Fwd {
 /* Forward declarations */
 
 template <typename T, std::size_t N>
+Fwd<T, N> derivative(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> integral(const T & x0, const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
 Fwd<T, N> reciprocal(const Fwd<T, N> & x);
 
 template <typename T, std::size_t N>
@@ -125,6 +131,13 @@ template <typename T, std::size_t N>
 Fwd<T, N> atan(const Fwd<T, N> & x);
 
 template <typename T, std::size_t N>
+Fwd<T, N> atan2(const Fwd<T, N> & y, const Fwd<T, N> & x);
+template <typename T, std::size_t N>
+Fwd<T, N> atan2(const T & y, const Fwd<T, N> & x);
+template <typename T, std::size_t N>
+Fwd<T, N> atan2(const Fwd<T, N> & y, const T & x);
+
+template <typename T, std::size_t N>
 Fwd<T, N> sinh(const Fwd<T, N> & x);
 
 template <typename T, std::size_t N>
@@ -143,6 +156,30 @@ template <typename T, std::size_t N>
 Fwd<T, N> atanh(const Fwd<T, N> & x);
 
 /* Fwd funcs */
+
+template <typename T, std::size_t N>
+Fwd<T, N> derivative(const Fwd<T, N> & x) {
+	Fwd<T, N> out;
+
+	for (std::size_t i = 1; i <= N; i++) {
+		out.grads[i - 1] = i * x.grads[i];
+	}
+
+	return out;
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> integral(const T & x0, const Fwd<T, N> & x) {
+	Fwd<T, N> out;
+
+	out.grads[0] = x0;
+
+	for (std::size_t i = 1; i <= N; i++) {
+		out.grads[i] = x.grads[i - 1] / i;
+	}
+
+	return out;
+}
 
 template <typename T, std::size_t N>
 Fwd<T, N> reciprocal(const Fwd<T, N> & x) {
@@ -230,12 +267,12 @@ Fwd<T, N> pow(const Fwd<T, N> & base, const Fwd<T, N> & exponent) {
 
 template <typename T, std::size_t N>
 Fwd<T, N> pow(const T & base, const Fwd<T, N> & exponent) {
-	return exp(log(base) * exponent);
+	return pow(Fwd<T, N>(base), exponent);
 }
 
 template <typename T, std::size_t N>
 Fwd<T, N> pow(const Fwd<T, N> & base, const T & exponent) {
-	return exp(log(base) * exponent);
+	return pow(base, Fwd<T, N>(exponent));
 }
 
 template <typename T, std::size_t N>
@@ -341,6 +378,24 @@ Fwd<T, N> atan(const Fwd<T, N> & x) {
 	}
 
 	return out;
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> atan2(const Fwd<T, N> & y, const Fwd<T, N> & x) {
+	return integral(
+		atan2(y.grads[0], x.grads[0]), 
+		(x * derivative(y) - y * derivative(x)) / (x * x + y * y)
+	);
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> atan2(const T & y, const Fwd<T, N> & x) {
+	return atan2(Fwd<T, N>(y), x);
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> atan2(const Fwd<T, N> & y, const T & x) {
+	return atan2(y, Fwd<T, N>(x));
 }
 
 template <typename T, std::size_t N>

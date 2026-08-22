@@ -39,14 +39,6 @@ lerp
 
 exp
 ...
-atanl
-
-atan2
-atan2f
-atan2l
-
-sinh
-...
 atanhl
 
 erf
