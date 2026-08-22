@@ -82,6 +82,11 @@ Fwd<T, N> integral(const T & x0, const Fwd<T, N> & x);
 template <typename T, std::size_t N>
 Fwd<T, N> reciprocal(const Fwd<T, N> & x);
 
+template <typename T, std::size_t N>
+Fwd<T, N> abs(const Fwd<T, N> & x);
+template <typename T, std::size_t N>
+Fwd<T, N> fabs(const Fwd<T, N> & x);
+
 template <typename A, typename B, typename T>
 requires isFwd<A> || isFwd<B> || isFwd<T>
 auto lerp(const A & a, const B & b, const T & t);
@@ -168,6 +173,27 @@ Fwd<T, N> acosh(const Fwd<T, N> & x);
 template <typename T, std::size_t N>
 Fwd<T, N> atanh(const Fwd<T, N> & x);
 
+template <typename T, std::size_t N>
+Fwd<T, N> erf(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> erfc(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> ceil(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> floor(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> trunc(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> round(const Fwd<T, N> & x);
+
+template <typename T, std::size_t N>
+Fwd<T, N> nearbyint(const Fwd<T, N> & x);
+
 /* Fwd funcs */
 
 template <typename T, std::size_t N>
@@ -208,6 +234,17 @@ Fwd<T, N> reciprocal(const Fwd<T, N> & x) {
 	}
 
 	return out;
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> abs(const Fwd<T, N> & x) {
+	if (x > 0) return x;
+	return -x;
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> fabs(const Fwd<T, N> & x) {
+	return abs(x);
 }
 
 template <typename A, typename B, typename T>
@@ -393,6 +430,43 @@ Fwd<T, N> acosh(const Fwd<T, N> & x) {
 template <typename T, std::size_t N>
 Fwd<T, N> atanh(const Fwd<T, N> & x) {
 	return T(0.5) * log((T(1) + x) / (T(1) - x));
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> erf(const Fwd<T, N> & x) {
+	const T factor = T(2.0 / sqrt(std::numbers::pi));
+
+	return integral(erf(x.grads[0]), derivative(x) * exp(-x * x) * factor);
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> erfc(const Fwd<T, N> & x) {
+	return T(1) - erf(x);
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> ceil(const Fwd<T, N> & x) {
+	return Fwd<T, N>(ceil(x.grads[0]));
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> floor(const Fwd<T, N> & x) {
+	return Fwd<T, N>(floor(x.grads[0]));
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> trunc(const Fwd<T, N> & x) {
+	return Fwd<T, N>(trunc(x.grads[0]));
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> round(const Fwd<T, N> & x) {
+	return Fwd<T, N>(round(x.grads[0]));
+}
+
+template <typename T, std::size_t N>
+Fwd<T, N> nearbyint(const Fwd<T, N> & x) {
+	return Fwd<T, N>(nearbyint(x.grads[0]));
 }
 
 /* Fwd operators */

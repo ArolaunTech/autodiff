@@ -5,7 +5,7 @@
 const int derindex = 25;
 
 ad::Fwd<double, derindex> f(ad::Fwd<double, derindex> x) {
-	return ad::pow(x + 1.0, 0.5);
+	return ad::erf(x + 1.0);
 }
 
 int main() {
