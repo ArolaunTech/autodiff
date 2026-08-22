@@ -5,7 +5,7 @@
 const int derindex = 25;
 
 ad::Fwd<double, derindex> f(ad::Fwd<double, derindex> x) {
-	return ad::atan2(x, 1.0);
+	return ad::asin(x);
 }
 
 int main() {

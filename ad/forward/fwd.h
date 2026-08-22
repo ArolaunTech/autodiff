@@ -335,22 +335,7 @@ Fwd<T, N> tan(const Fwd<T, N> & x) {
 
 template <typename T, std::size_t N>
 Fwd<T, N> asin(const Fwd<T, N> & x) {
-	Fwd<T, N> c = sqrt(T(1) - x * x);
-	Fwd<T, N> out;
-
-	out.grads[0] = asin(x.grads[0]);
-
-	for (std::size_t i = 1; i <= N; i++) {
-		out.grads[i] = i * x.grads[i];
-
-		for (std::size_t j = 1; j < i; j++) {
-			out.grads[i] -= j * out.grads[j] * c.grads[i - j];
-		}
-
-		out.grads[i] /= i * c.grads[0];
-	}
-
-	return out;
+	return integral(asin(x.grads[0]), derivative(x) * reciprocal(sqrt(T(1) - x * x)));
 }
 
 template <typename T, std::size_t N>
@@ -362,22 +347,7 @@ Fwd<T, N> acos(const Fwd<T, N> & x) {
 
 template <typename T, std::size_t N>
 Fwd<T, N> atan(const Fwd<T, N> & x) {
-	Fwd<T, N> c = T(1) + x * x;
-	Fwd<T, N> out;
-
-	out.grads[0] = atan(x.grads[0]);
-
-	for (std::size_t i = 1; i <= N; i++) {
-		out.grads[i] = i * x.grads[i];
-
-		for (std::size_t j = 1; j < i; j++) {
-			out.grads[i] -= j * out.grads[j] * c.grads[i - j];
-		}
-
-		out.grads[i] /= i * c.grads[0];
-	}
-
-	return out;
+	return integral(atan(x.grads[0]), derivative(x) * reciprocal(T(1) + x * x));
 }
 
 template <typename T, std::size_t N>
