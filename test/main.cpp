@@ -9,12 +9,14 @@ ad::Fwd<double, derindex> f(ad::Fwd<double, derindex> x) {
 }
 
 int main() {
-	ad::Fwd<double, derindex> x = 0;
-	x.grads[1] = 1;
+	ad::tape tape;
 
-	ad::Fwd<double, derindex> y = f(x);
+	ad::var x = tape.get_var();
 
-	for (int i = 0; i <= derindex; i++) {
-		std::cout << y.derivative(i) << "\n";
-	}
+	x = 5;
+
+	std::cout << x.tape << "\n";
+	std::cout << x.index << "\n";
+	std::cout << x.value() << "\n";
+	std::cout << x.grad() << "\n"; 
 }

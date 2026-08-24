@@ -71,6 +71,10 @@ struct Fwdcheck<Fwd<T, N> > : std::true_type {};
 template <typename T>
 concept isFwd = Fwdcheck<T>::value;
 
+/* Value concept */
+template <typename T>
+concept Numeric = std::integral<T> || std::floating_point<T>;
+
 /* Forward declarations */
 
 template <typename T, std::size_t N>
@@ -434,7 +438,7 @@ Fwd<T, N> atanh(const Fwd<T, N> & x) {
 
 template <typename T, std::size_t N>
 Fwd<T, N> erf(const Fwd<T, N> & x) {
-	const T factor = T(2.0 / sqrt(std::numbers::pi));
+	const T factor = 2 / sqrt(std::numbers::pi);
 
 	return integral(erf(x.grads[0]), derivative(x) * exp(-x * x) * factor);
 }
@@ -482,14 +486,17 @@ Fwd<T, N> operator+(const Fwd<T, N> & lhs, const Fwd<T, N> & rhs) {
 
 	return out;
 }
-template <typename T, std::size_t N>
-Fwd<T, N> operator+(const T & lhs, const Fwd<T, N> & rhs) {
+
+template <typename T, std::size_t N, Numeric T2>
+Fwd<T, N> operator+(const T2 & lhs, const Fwd<T, N> & rhs) {
 	return rhs + lhs;
 }
 
-template <typename T, std::size_t N>
-Fwd<T, N> operator+(const Fwd<T, N> & lhs, const T & rhs) {
-	return lhs + Fwd<T, N>(rhs);
+template <typename T, std::size_t N, Numeric T2>
+Fwd<T, N> operator+(const Fwd<T, N> & lhs, const T2 & rhs) {
+	Fwd<T, N> out = lhs;
+	out.grads[0] = lhs.grads[0] + rhs;
+	return out;
 }
 
 // Unary plus
@@ -526,13 +533,13 @@ Fwd<T, N> operator-(const Fwd<T, N> & lhs, const Fwd<T, N> & rhs) {
 	return lhs + (-rhs);
 }
 
-template <typename T, std::size_t N>
-Fwd<T, N> operator-(const T & lhs, const Fwd<T, N> & rhs) {
+template <typename T, std::size_t N, Numeric T2>
+Fwd<T, N> operator-(const T2 & lhs, const Fwd<T, N> & rhs) {
 	return lhs + (-rhs);
 }
 
-template <typename T, std::size_t N>
-Fwd<T, N> operator-(const Fwd<T, N> & lhs, const T & rhs) {
+template <typename T, std::size_t N, Numeric T2>
+Fwd<T, N> operator-(const Fwd<T, N> & lhs, const T2 & rhs) {
 	return lhs + (-rhs);
 }
 
@@ -557,7 +564,7 @@ Fwd<T, N> & operator-=(Fwd<T, N> & lhs, const T2 & rhs) {
 // Prefix decrement
 template <typename T, std::size_t N>
 Fwd<T, N> & operator--(Fwd<T, N> & val) {
-	val-= 1;
+	val -= 1;
 	return val;
 }
 
@@ -583,14 +590,20 @@ Fwd<T, N> operator*(const Fwd<T, N> & lhs, const Fwd<T, N> & rhs) {
 	return out;
 }
 
-template <typename T, std::size_t N>
-Fwd<T, N> operator*(const T & lhs, const Fwd<T, N> & rhs) {
+template <typename T, std::size_t N, Numeric T2>
+Fwd<T, N> operator*(const T2 & lhs, const Fwd<T, N> & rhs) {
 	return rhs * lhs;
 }
 
-template <typename T, std::size_t N>
-Fwd<T, N> operator*(const Fwd<T, N> & lhs, const T & rhs) {
-	return lhs * Fwd<T, N>(rhs);
+template <typename T, std::size_t N, Numeric T2>
+Fwd<T, N> operator*(const Fwd<T, N> & lhs, const T2 & rhs) {
+	Fwd<T, N> out;
+
+	for (std::size_t i = 0; i <= N; i++) {
+		out.grads[i] = lhs.grads[i] * rhs;
+	}
+
+	return out;
 }
 
 // Multiplication assignment
@@ -606,13 +619,13 @@ Fwd<T, N> operator/(const Fwd<T, N> & lhs, const Fwd<T, N> & rhs) {
 	return lhs * reciprocal(rhs);
 }
 
-template <typename T, std::size_t N>
-Fwd<T, N> operator/(const T & lhs, const Fwd<T, N> & rhs) {
+template <typename T, std::size_t N, Numeric T2>
+Fwd<T, N> operator/(const T2 & lhs, const Fwd<T, N> & rhs) {
 	return lhs * reciprocal(rhs);
 }
 
-template <typename T, std::size_t N>
-Fwd<T, N> operator/(const Fwd<T, N> & lhs, const T & rhs) {
+template <typename T, std::size_t N, Numeric T2>
+Fwd<T, N> operator/(const Fwd<T, N> & lhs, const T2 & rhs) {
 	return lhs * (1 / rhs);
 }
 
@@ -635,13 +648,9 @@ bool operator==(const T1 & lhs, const Fwd<T2, N> & rhs) {
 }
 
 // Inequality
-template<typename T1, typename T2, std::size_t N>
-bool operator!=(const Fwd<T1, N> & lhs, const T2 & rhs) {
-	return !(lhs == rhs);
-}
-
-template<typename T1, typename T2, std::size_t N>
-bool operator!=(const T1 & lhs, const Fwd<T2, N> & rhs) {
+template<typename T1, typename T2>
+requires isFwd<T1> || isFwd<T2>
+bool operator!=(const T1 & lhs, const T2 & rhs) {
 	return !(lhs == rhs);
 }
 
@@ -657,14 +666,10 @@ bool operator<(const T1 & lhs, const Fwd<T2, N> & rhs) {
 }
 
 // Less than or equal
-template<typename T1, typename T2, std::size_t N>
-bool operator<=(const Fwd<T1, N> & lhs, const T2 & rhs) {
-	return lhs.grads[0] <= rhs;
-}
-
-template<typename T1, typename T2, std::size_t N>
-bool operator<=(const T1 & lhs, const Fwd<T2, N> & rhs) {
-	return lhs <= rhs.grads[0];
+template<typename T1, typename T2>
+requires isFwd<T1> || isFwd<T2>
+bool operator<=(const T1 & lhs, const T2 & rhs) {
+	return !(lhs > rhs);
 }
 
 // Greater than
@@ -679,35 +684,23 @@ bool operator>(const T1 & lhs, const Fwd<T2, N> & rhs) {
 }
 
 // Greater than or equal
-template<typename T1, typename T2, std::size_t N>
-bool operator>=(const Fwd<T1, N> & lhs, const T2 & rhs) {
-	return lhs.grads[0] >= rhs;
-}
-
-template<typename T1, typename T2, std::size_t N>
-bool operator>=(const T1 & lhs, const Fwd<T2, N> & rhs) {
-	return lhs >= rhs.grads[0];
+template<typename T1, typename T2>
+requires isFwd<T1> || isFwd<T2>
+bool operator>=(const T1 & lhs, const T2 & rhs) {
+	return !(lhs < rhs);
 }
 
 // Logical and
-template<typename T1, typename T2, std::size_t N>
-bool operator&&(const Fwd<T1, N> & lhs, const T2 & rhs) {
-	return !((!lhs) || (!rhs));
-}
-
-template<typename T1, typename T2, std::size_t N>
-bool operator&&(const T2 & lhs, const Fwd<T1, N> & rhs) {
+template<typename T1, typename T2>
+requires isFwd<T1> || isFwd<T2>
+bool operator&&(const T1 & lhs, const T2 & rhs) {
 	return !((!lhs) || (!rhs));
 }
 
 // Logical or
-template<typename T1, typename T2, std::size_t N>
-bool operator||(const Fwd<T1, N> & lhs, const T2 & rhs) {
-	return !((!lhs) && (!rhs));
-}
-
-template<typename T1, typename T2, std::size_t N>
-bool operator||(const T2 & lhs, const Fwd<T1, N> & rhs) {
+template<typename T1, typename T2>
+requires isFwd<T1> || isFwd<T2>
+bool operator||(const T1 & lhs, const T2 & rhs) {
 	return !((!lhs) && (!rhs));
 }
 
