@@ -2,10 +2,8 @@
 
 #include <ad/ad.h>
 
-const int derindex = 25;
-
-ad::Fwd<double, derindex> f(ad::Fwd<double, derindex> x) {
-	return ad::erf(x + 1.0);
+ad::var f(ad::var x) {
+	return x + x;
 }
 
 int main() {
@@ -17,6 +15,22 @@ int main() {
 
 	std::cout << x.tape << "\n";
 	std::cout << x.index << "\n";
-	std::cout << x.value() << "\n";
-	std::cout << x.grad() << "\n"; 
+
+	ad::var y = f(x);
+
+	std::cout << y.tape << "\n";
+	std::cout << y.index << "\n";
+
+	std::cout << "\n";
+
+	for (std::size_t i = 0; i < tape.size(); i++) {
+		std::cout << tape[i].value << "\n";
+		std::cout << tape[i].grad << "\n";
+		std::cout << "{\n";
+		for (std::size_t j = 0; j < tape[i].refs.size(); j++) {
+			std::cout << "\t" << tape[i].refs[j] << ",\n";
+		}
+		std::cout << "}\n";
+		std::cout << tape[i].operation << "\n\n";
+	}
 }

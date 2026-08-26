@@ -1,10 +1,34 @@
 #include <vector>
 #include <stdexcept>
+#include <ostream>
+
+#include "../common/concepts.h"
 
 #ifndef TAPE_H
 #define TAPE_H
 
 namespace ad {
+
+/* cmath */
+
+using std::abs;
+using std::acos;
+using std::asin;
+using std::atan;
+using std::atan2;
+using std::cos;
+using std::exp;
+using std::log10;
+using std::log;
+using std::pow;
+using std::sin;
+using std::sqrt;
+using std::tan;
+using std::cosh;
+using std::sinh;
+using std::tanh;
+using std::erf;
+using std::hypot;
 
 /* Forward declarations */
 
@@ -16,10 +40,13 @@ template <typename T> struct Var;
 
 enum Op {
 	OP_NONE, // Used for input variables
-	OP_ADD,
-	OP_NEG,
-	OP_MUL,
-	OP_RECIPROCAL
+	OP_ADD, // (Binary) Addition to a variable or constant
+	OP_NEG, // (Unary) Negation
+	OP_MUL, // (Binary) Multiplication of two variables
+	OP_CMUL, // (Unary) Multiplication with a constant
+	OP_DIV, // (Binary) Division of two variables
+	OP_CDIV, // (Unary) Constant divided by a variable
+	OP_EXP // (Unary) exp(x)
 };
 
 template <typename T>
@@ -39,6 +66,10 @@ template <typename T>
 struct Tape {
 	std::vector<TapeEntry<T> > tape;
 
+	std::size_t size() {
+		return tape.size();
+	}
+
 	Var<T> get_var() {
 		Var<T> out;
 		out.tape = this;
@@ -47,6 +78,10 @@ struct Tape {
 		tape.push_back(TapeEntry<T>());
 
 		return out;
+	}
+
+	TapeEntry<T> & operator[](std::size_t pos) {
+		return tape[pos];
 	}
 };
 
@@ -74,12 +109,68 @@ struct Var {
 	}
 };
 
+/* Var concept */
+
+template <typename T>
+struct Varcheck : std::false_type {};
+
+template <typename T>
+struct Varcheck<Var<T> > : std::true_type {};
+
+template <typename T>
+concept isVar = Varcheck<T>::value;
+
+/* cmath forward declarations */
+
+template <typename T, typename T2, typename T3>
+requires isVar<T> || isVar<T2> || isVar<T3>
+auto lerp(const T1 & a, const T2 & b, const T3 & t);
+
+template <typename T>
+Var<T> exp(const Var<T> & x);
+
+template <typename T>
+Var<T> exp2(const Var<T> & x);
+
+template <typename T>
+Var<T> expm1(const Var<T> & x);
+
+/* cmath functions */
+
+template <typename T, typename T2, typename T3>
+requires isVar<T> || isVar<T2> || isVar<T3>
+auto lerp(const T1 & a, const T2 & b, const T3 & t) {
+	return a + t * (b - a);
+}
+
+template <typename T>
+Var<T> exp(const Var<T> & x) {
+	Var<T> out = x.tape->get_var();
+
+	out.value() = exp(x.value());
+	out.tape->tape[out.index].refs.push_back(x.index);
+	out.tape->tape[out.index].operation = OP_EXP;
+
+	return out;
+}
+
+template <typename T>
+Var<T> exp2(const Var<T> & x) {
+	return exp(x * log(2));
+}
+
+template <typename T>
+Var<T> expm1(const Var<T> & x) {
+	return exp(x) - 1;
+}
+
 /* Operators */
 
+// Addition
 template <typename T>
 Var<T> operator+(const Var<T> & lhs, const Var<T> & rhs) {
 	if (lhs.tape != rhs.tape) {
-		throw std::runtime_error("Cannot add variables from different tapes!");
+		throw std::runtime_error("Cannot add/subtract variables from different tapes!");
 	}
 
 	Var<T> out = lhs.tape->get_var();
@@ -94,35 +185,43 @@ Var<T> operator+(const Var<T> & lhs, const Var<T> & rhs) {
 }
 
 template <typename T>
-Var<T> operator+(const Var<T> & lhs, const T & rhs) {
-	Var<T> x = lhs.tape->get_var();
-	x = rhs;
+Var<T> operator+(const Var<T> & lhs, const Numeric & rhs) {
+	Var<T> out = lhs.tape->get_var();
+	out.value() = lhs.value() + rhs;
 
-	return lhs + x;
+	out.tape->tape[out.index].refs.push_back(lhs.index);
+
+	out.tape->tape[out.index].operation = OP_ADD;
+
+	return out;
 }
 
 template <typename T>
-Var<T> operator+(const T & lhs, const Var<T> & rhs) {
+Var<T> operator+(const Numeric & lhs, const Var<T> & rhs) {
 	return rhs + lhs;
 }
 
+// Unary plus
 template <typename T>
 Var<T> & operator+(Var<T> & val) {
 	return val;
 }
 
+// Addition assignment
 template <typename T, typename T2>
 Var<T> & operator+=(Var<T> & lhs, const T2 & rhs) {
 	lhs = lhs + rhs;
 	return lhs;
 }
 
+// Prefix increment
 template <typename T>
 Var<T> & operator++(Var<T> & val) {
 	val += T(1);
 	return val;
 }
 
+// Postfix increment
 template <typename T>
 Var<T> operator++(Var<T> & val, int) {
 	Var<T> copy = val;
@@ -130,16 +229,14 @@ Var<T> operator++(Var<T> & val, int) {
 	return copy;
 }
 
+// Subtraction
 template <typename T, typename T2>
-Var<T> operator-(const Var<T> & lhs, const T2 & rhs) {
+requires isVar<T> || isVar<T2>
+auto operator-(const T & lhs, const T2 & rhs) {
 	return lhs + (-rhs);
 }
 
-template <typename T, typename T2>
-Var<T> operator-(const T2 & lhs, const Var<T> & rhs) {
-	return lhs + (-rhs);
-}
-
+// Unary negation
 template <typename T>
 Var<T> operator-(const Var<T> & val) {
 	Var<T> out = val.tape->get_var();
@@ -151,18 +248,21 @@ Var<T> operator-(const Var<T> & val) {
 	return out;
 }
 
+// Subtraction assignment
 template <typename T, typename T2>
 Var<T> & operator-=(Var<T> & lhs, const T2 & rhs) {
 	lhs = lhs - rhs;
 	return lhs;
 }
 
+// Prefix decrement
 template <typename T>
 Var<T> & operator--(Var<T> & val) {
 	val -= T(1);
 	return val;
 }
 
+// Postfix decrement
 template <typename T>
 Var<T> operator--(Var<T> & val, int) {
 	Var<T> copy = val;
@@ -170,10 +270,11 @@ Var<T> operator--(Var<T> & val, int) {
 	return copy;
 }
 
+// Multiplication
 template <typename T>
 Var<T> operator*(const Var<T> & lhs, const Var<T> & rhs) {
 	if (lhs.tape != rhs.tape) {
-		throw std::runtime_error("Cannot add variables from different tapes!");
+		throw std::runtime_error("Cannot multiply variables from different tapes!");
 	}
 
 	Var<T> out = lhs.tape->get_var();
@@ -188,68 +289,147 @@ Var<T> operator*(const Var<T> & lhs, const Var<T> & rhs) {
 }
 
 template <typename T>
-Var<T> operator*(const Var<T> & lhs, const T & rhs) {
-	Var<T> x = lhs.tape->get_var();
-	x = rhs;
+Var<T> operator*(const Var<T> & lhs, const Numeric & rhs) {
+	Var<T> out = lhs.tape->get_var();
+	out.value() = lhs.value() * rhs;
 
-	return lhs * x;
+	out.tape->tape[out.index].refs.push_back(lhs.index);
+
+	out.tape->tape[out.index].operation = OP_CMUL;
+
+	return out;
 }
 
 template <typename T>
-Var<T> operator*(const T & lhs, const Var<T> & rhs) {
+Var<T> operator*(const Numeric & lhs, const Var<T> & rhs) {
 	return rhs * lhs;
 }
 
+// Multiplication assignment
 template <typename T, typename T2>
 Var<T> & operator*=(Var<T> & lhs, const T2 & rhs) {
 	lhs = lhs * rhs;
 	return lhs;
 }
 
+// Division
+template <typename T>
+Var<T> operator/(const Var<T> & lhs, const Var<T> & rhs) {
+	if (lhs.tape != rhs.tape) {
+		throw std::runtime_error("Cannot multiply variables from different tapes!");
+	}
 
+	Var<T> out = lhs.tape->get_var();
+	out.value() = lhs.value() / rhs.value();
 
-/*
+	out.tape->tape[out.index].refs.push_back(lhs.index);
+	out.tape->tape[out.index].refs.push_back(rhs.index);
 
-operator/ division
-free function -> T operator/( T const & lhs, T const & rhs )
+	out.tape->tape[out.index].operation = OP_DIV;
 
-operator/= division assignment
-free function ->  T & operator/=( T & lhs, T const & rhs )
+	return out;
+}
 
-operator== equality
-free function -> bool operator==( T const & lhs, T const & rhs )
+template <typename T>
+Var<T> operator/(const Var<T> & lhs, const Numeric & rhs) {
+	return lhs * (1 / rhs);
+}
 
-operator!= or operator not_eq inequality
-free function -> bool operator!=( T const & lhs, T const & rhs )
+template <typename T>
+Var<T> operator/(const Numeric & lhs, const Var<T> & rhs) {
+	Var<T> out = lhs.tape->get_var();
+	out.value() = lhs / rhs.value();
 
-operator< less than
-free function -> bool operator<( T const & lhs, T const & rhs )
+	out.tape->tape[out.index].refs.push_back(rhs.index);
 
-operator<= less than or equal
-free function -> bool operator<=( T const & lhs, T const & rhs )
+	out.tape->tape[out.index].operation = OP_CDIV;
 
-operator> greater than
-free function -> bool operator>( T const & lhs, T const & rhs )
+	return out;
+}
 
-operator>= greater than or equal
-free function -> bool operator>=( T const & lhs, T const & rhs )
+// Division assignment
+template <typename T, typename T2>
+Var<T> & operator/=(Var<T> & lhs, const T2 & rhs) {
+	lhs = lhs / rhs;
+	return lhs;
+}
 
-operator&& or operator and logical and
-free function -> bool operator&&( T const & lhs, T const & rhs )
+// Equality
+template <typename T, typename T2>
+bool operator==(const Var<T> & lhs, const T2 & rhs) {
+	return lhs.value() == rhs;
+}
 
-operator|| or operator or logical or
-free function -> bool operator||( T const & lhs, T const & rhs )
+template <typename T, typename T2>
+bool operator==(const T2 & lhs, const Var<T> & rhs) {
+	return lhs == rhs.value();
+}
 
-operator! or operator not logical not
-free function -> bool operator!( T const & value ) const
+// Inequality
+template <typename T, typename T2>
+requires isVar<T> || isVar<T2>
+bool operator!=(const T & lhs, const T2 & rhs) {
+	return !(lhs == rhs);
+}
 
-operator( ) cast
-member function -> From a type T -> operator U( ) const
+// Less than
+template <typename T, typename T2>
+bool operator<(const Var<T> & lhs, const T2 & rhs) {
+	return lhs.value() < rhs;
+}
 
-operator<< stream insertion
-free function -> std::ostream & operator<<( std::ostream & os, T const & value )
+template <typename T, typename T2>
+bool operator<(const T2 & lhs, const Var<T> & rhs) {
+	return lhs < rhs.value();
+}
 
-*/
+// Less than or equal to
+template <typename T, typename T2>
+requires isVar<T> || isVar<T2>
+bool operator<=(const T & lhs, const T2 & rhs) {
+	return !(lhs > rhs);
+}
+
+// Greater than
+template <typename T, typename T2>
+requires isVar<T> || isVar<T2>
+bool operator>(const T & lhs, const T2 & rhs) {
+	return rhs < lhs;
+}
+
+// Greater than or equal to
+template <typename T, typename T2>
+requires isVar<T> || isVar<T2>
+bool operator>=(const T & lhs, const T2 & rhs) {
+	return !(lhs < rhs);
+}
+
+// Logical and
+template <typename T, typename T2>
+requires isVar<T> || isVar<T2>
+bool operator&&(const T & lhs, const T2 & rhs) {
+	return !((!lhs) || (!rhs));
+}
+
+// Logical or
+template <typename T, typename T2>
+requires isVar<T> || isVar<T2>
+bool operator||(const T & lhs, const T2 & rhs) {
+	return !((!lhs) && (!rhs));
+}
+
+// Logical not
+template <typename T>
+bool operator!(const Var<T> & val) {
+	return !(val.value());
+}
+
+// Stream insertion
+template <typename T>
+std::ostream & operator<<(std::ostream & os, const Var<T> & val) {
+	os << val.value();
+	return os;
+}
 
 /* Default types */
 using tape = Tape<double>;

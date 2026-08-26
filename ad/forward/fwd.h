@@ -4,8 +4,10 @@
 #include <numbers>
 #include <concepts>
 #include <type_traits>
+#include <ostream>
 
 #include "../common/factorial.h"
+#include "../common/concepts.h"
 
 #ifndef DUAL_H
 #define DUAL_H
@@ -70,10 +72,6 @@ struct Fwdcheck<Fwd<T, N> > : std::true_type {};
 
 template <typename T>
 concept isFwd = Fwdcheck<T>::value;
-
-/* Value concept */
-template <typename T>
-concept Numeric = std::integral<T> || std::floating_point<T>;
 
 /* Forward declarations */
 
@@ -275,12 +273,12 @@ Fwd<T, N> exp(const Fwd<T, N> & x) {
 
 template <typename T, std::size_t N>
 Fwd<T, N> exp2(const Fwd<T, N> & x) {
-	return pow(T(2), x);
+	return pow(2.0, x);
 }
 
 template <typename T, std::size_t N>
 Fwd<T, N> expm1(const Fwd<T, N> & x) {
-	return exp(x) - T(1);
+	return exp(x) - 1;
 }
 
 template <typename T, std::size_t N>
@@ -290,21 +288,17 @@ Fwd<T, N> log(const Fwd<T, N> & x) {
 
 template <typename T, std::size_t N>
 Fwd<T, N> log10(const Fwd<T, N> & x) {
-	const T invlog10 = 1 / log(10);
-
-	return invlog10 * log(x);
+	return log(x) / log(10.0);
 }
 
 template <typename T, std::size_t N>
 Fwd<T, N> log2(const Fwd<T, N> & x) {
-	const T invlog2 = 1 / log(2);
-
-	return invlog2 * log(x);
+	return log(x) / log(2.0);
 }
 
 template <typename T, std::size_t N>
 Fwd<T, N> log1p(const Fwd<T, N> & x) {
-	return log(T(1) + x);
+	return log(1 + x);
 }
 
 template <typename A, typename B>
@@ -315,12 +309,12 @@ auto pow(const A & base, const B & exponent) {
 
 template <typename T, std::size_t N>
 Fwd<T, N> sqrt(const Fwd<T, N> & x) {
-	return pow(x, T(0.5));
+	return pow(x, 0.5);
 }
 
 template <typename T, std::size_t N>
 Fwd<T, N> cbrt(const Fwd<T, N> & x) {
-	return pow(x, T(1.0 / 3.0));
+	return pow(x, 1.0/3);
 }
 
 template <typename T, std::size_t N>
@@ -373,19 +367,17 @@ Fwd<T, N> tan(const Fwd<T, N> & x) {
 
 template <typename T, std::size_t N>
 Fwd<T, N> asin(const Fwd<T, N> & x) {
-	return integral(asin(x.grads[0]), derivative(x) * reciprocal(sqrt(T(1) - x * x)));
+	return integral(asin(x.grads[0]), derivative(x) * reciprocal(sqrt(1 - x * x)));
 }
 
 template <typename T, std::size_t N>
 Fwd<T, N> acos(const Fwd<T, N> & x) {
-	const T HALF_PI = T(0.5 * std::numbers::pi);
-
-	return HALF_PI - asin(x);
+	return 0.5 * std::numbers::pi - asin(x);
 }
 
 template <typename T, std::size_t N>
 Fwd<T, N> atan(const Fwd<T, N> & x) {
-	return integral(atan(x.grads[0]), derivative(x) * reciprocal(T(1) + x * x));
+	return integral(atan(x.grads[0]), derivative(x) * reciprocal(1 + x * x));
 }
 
 template <typename T, std::size_t N>
@@ -408,12 +400,12 @@ Fwd<T, N> atan2(const Fwd<T, N> & y, const T & x) {
 
 template <typename T, std::size_t N>
 Fwd<T, N> sinh(const Fwd<T, N> & x) {
-	return T(0.5) * (exp(x) - exp(-x));
+	return 0.5 * (exp(x) - exp(-x));
 }
 
 template <typename T, std::size_t N>
 Fwd<T, N> cosh(const Fwd<T, N> & x) {
-	return T(0.5) * (exp(x) + exp(-x));
+	return 0.5 * (exp(x) + exp(-x));
 }
 
 template <typename T, std::size_t N>
@@ -423,29 +415,32 @@ Fwd<T, N> tanh(const Fwd<T, N> & x) {
 
 template <typename T, std::size_t N>
 Fwd<T, N> asinh(const Fwd<T, N> & x) {
-	return log(x + sqrt(x * x + T(1)));
+	return log(x + sqrt(x * x + 1));
 }
 
 template <typename T, std::size_t N>
 Fwd<T, N> acosh(const Fwd<T, N> & x) {
-	return log(x + sqrt(x * x - T(1)));
+	return log(x + sqrt(x * x - 1));
 }
 
 template <typename T, std::size_t N>
 Fwd<T, N> atanh(const Fwd<T, N> & x) {
-	return T(0.5) * log((T(1) + x) / (T(1) - x));
+	return 0.5 * log((1 + x) / (1 - x));
 }
 
 template <typename T, std::size_t N>
 Fwd<T, N> erf(const Fwd<T, N> & x) {
-	const T factor = 2 / sqrt(std::numbers::pi);
-
-	return integral(erf(x.grads[0]), derivative(x) * exp(-x * x) * factor);
+	return integral(
+		erf(x.grads[0]), 
+		derivative(x) * 
+		exp(-x * x) * 
+		(2 / sqrt(std::numbers::pi))
+	);
 }
 
 template <typename T, std::size_t N>
 Fwd<T, N> erfc(const Fwd<T, N> & x) {
-	return T(1) - erf(x);
+	return 1 - erf(x);
 }
 
 template <typename T, std::size_t N>
@@ -708,6 +703,13 @@ bool operator||(const T1 & lhs, const T2 & rhs) {
 template<typename T, std::size_t N>
 bool operator!(const Fwd<T, N> & val) {
 	return !(val.grads[0]);
+}
+
+// Stream insertion
+template <typename T, std::size_t N>
+std::ostream & operator<<(std::ostream & os, const Fwd<T, N> & val) {
+	os << val.grads[0];
+	return os;
 }
 
 /* Default dual type */
