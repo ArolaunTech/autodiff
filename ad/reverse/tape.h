@@ -1,6 +1,7 @@
 #include <vector>
 #include <stdexcept>
 #include <ostream>
+#include <numbers>
 
 #include "../common/concepts.h"
 
@@ -46,7 +47,12 @@ enum Op {
 	OP_CMUL, // (Unary) Multiplication with a constant
 	OP_DIV, // (Binary) Division of two variables
 	OP_CDIV, // (Unary) Constant divided by a variable
-	OP_EXP // (Unary) exp(x)
+	OP_EXP, // (Unary) e^x
+	OP_LOG, // (Unary) Natural logarithm
+	OP_SIN, // (Unary) Sine
+	OP_COS, // (Unary) Cosine
+	OP_ASIN, // (Unary) Arcsine
+	OP_ATAN // (Unary) Arctangent
 };
 
 template <typename T>
@@ -124,7 +130,7 @@ concept isVar = Varcheck<T>::value;
 
 template <typename T, typename T2, typename T3>
 requires isVar<T> || isVar<T2> || isVar<T3>
-auto lerp(const T1 & a, const T2 & b, const T3 & t);
+auto lerp(const T & a, const T2 & b, const T3 & t);
 
 template <typename T>
 Var<T> exp(const Var<T> & x);
@@ -135,11 +141,56 @@ Var<T> exp2(const Var<T> & x);
 template <typename T>
 Var<T> expm1(const Var<T> & x);
 
+template <typename T>
+Var<T> log(const Var<T> & x);
+
+template <typename T>
+Var<T> log10(const Var<T> & x);
+
+template <typename T>
+Var<T> log2(const Var<T> & x);
+
+template <typename T, typename T2>
+requires isVar<T> || isVar<T2>
+auto pow(const T & x, const T2 & y);
+
+template <typename T>
+Var<T> sqrt(const Var<T> & x);
+
+template <typename T>
+Var<T> cbrt(const Var<T> & x);
+
+template <typename T, typename T2>
+requires isVar<T> || isVar<T2>
+auto hypot(const T & x, const T2 & y);
+
+template <typename T, typename T2, typename T3>
+requires isVar<T> || isVar<T2> || isVar<T3>
+auto hypot(const T & x, const T2 & y, const T3 & z);
+
+template <typename T>
+Var<T> sin(const Var<T> & x);
+
+template <typename T>
+Var<T> cos(const Var<T> & x);
+
+template <typename T>
+Var<T> tan(const Var<T> & x);
+
+template <typename T>
+Var<T> asin(const Var<T> & x);
+
+template <typename T>
+Var<T> acos(const Var<T> & x);
+
+template <typename T>
+Var<T> atan(const Var<T> & x);
+
 /* cmath functions */
 
 template <typename T, typename T2, typename T3>
 requires isVar<T> || isVar<T2> || isVar<T3>
-auto lerp(const T1 & a, const T2 & b, const T3 & t) {
+auto lerp(const T & a, const T2 & b, const T3 & t) {
 	return a + t * (b - a);
 }
 
@@ -156,12 +207,120 @@ Var<T> exp(const Var<T> & x) {
 
 template <typename T>
 Var<T> exp2(const Var<T> & x) {
-	return exp(x * log(2));
+	return pow(2.0, x);
 }
 
 template <typename T>
 Var<T> expm1(const Var<T> & x) {
-	return exp(x) - 1;
+	return exp(x) - 1.0;
+}
+
+template <typename T>
+Var<T> log(const Var<T> & x) {
+	Var<T> out = x.tape->get_var();
+
+	out.value() = log(x.value());
+	out.tape->tape[out.index].refs.push_back(x.index);
+	out.tape->tape[out.index].operation = OP_LOG;
+
+	return out;
+}
+
+template <typename T>
+Var<T> log10(const Var<T> & x) {
+	return log(x) / log(10.0);
+}
+
+template <typename T>
+Var<T> log2(const Var<T> & x) {
+	return log(x) / log(2.0);
+}
+
+template <typename T>
+Var<T> log1p(const Var<T> & x) {
+	return log(1.0 + x);
+}
+
+template <typename T, typename T2>
+requires isVar<T> || isVar<T2>
+auto pow(const T & x, const T2 & y) {
+	return exp(log(x) * y);
+}
+
+template <typename T>
+Var<T> sqrt(const Var<T> & x) {
+	return pow(x, 0.5);
+}
+
+template <typename T>
+Var<T> cbrt(const Var<T> & x) {
+	return pow(x, 1.0/3.0);
+}
+
+template <typename T, typename T2>
+requires isVar<T> || isVar<T2>
+auto hypot(const T & x, const T2 & y) {
+	return sqrt(x * x + y * y);
+}
+
+template <typename T, typename T2, typename T3>
+requires isVar<T> || isVar<T2> || isVar<T3>
+auto hypot(const T & x, const T2 & y, const T3 & z) {
+	return sqrt(x * x + y * y + z * z);
+}
+
+template <typename T>
+Var<T> sin(const Var<T> & x) {
+	Var<T> out = x.tape->get_var();
+
+	out.value() = sin(x.value());
+	out.tape->tape[out.index].refs.push_back(x.index);
+	out.tape->tape[out.index].operation = OP_SIN;
+
+	return out;
+}
+
+template <typename T>
+Var<T> cos(const Var<T> & x) {
+	Var<T> out = x.tape->get_var();
+
+	out.value() = cos(x.value());
+	out.tape->tape[out.index].refs.push_back(x.index);
+	out.tape->tape[out.index].operation = OP_COS;
+
+	return out;
+}
+
+template <typename T>
+Var<T> tan(const Var<T> & x) {
+	return sin(x) / cos(x);
+}
+
+template <typename T>
+Var<T> asin(const Var<T> & x) {
+	Var<T> out = x.tape->get_var();
+
+	out.value() = asin(x.value());
+	out.tape->tape[out.index].refs.push_back(x.index);
+	out.tape->tape[out.index].operation = OP_ASIN;
+
+	return out;
+}
+
+template <typename T>
+Var<T> acos(const Var<T> & x) {
+	return 0.5 * std::numbers::pi - asin(x);
+}
+
+template <typename T>
+Var<T> atan(const Var<T> & x) {
+	Var<T> out = x.tape->get_var();
+
+	out.value() = atan(x.value());
+	out.tape->tape[out.index].refs.push_back(x.index);
+	out.tape->tape[out.index].operation = OP_ATAN;
+
+	return out;
 }
 
 /* Operators */
@@ -184,8 +343,8 @@ Var<T> operator+(const Var<T> & lhs, const Var<T> & rhs) {
 	return out;
 }
 
-template <typename T>
-Var<T> operator+(const Var<T> & lhs, const Numeric & rhs) {
+template <typename T, Numeric T2>
+Var<T> operator+(const Var<T> & lhs, const T2 & rhs) {
 	Var<T> out = lhs.tape->get_var();
 	out.value() = lhs.value() + rhs;
 
@@ -196,8 +355,8 @@ Var<T> operator+(const Var<T> & lhs, const Numeric & rhs) {
 	return out;
 }
 
-template <typename T>
-Var<T> operator+(const Numeric & lhs, const Var<T> & rhs) {
+template <typename T, Numeric T2>
+Var<T> operator+(const T2 & lhs, const Var<T> & rhs) {
 	return rhs + lhs;
 }
 
@@ -217,7 +376,7 @@ Var<T> & operator+=(Var<T> & lhs, const T2 & rhs) {
 // Prefix increment
 template <typename T>
 Var<T> & operator++(Var<T> & val) {
-	val += T(1);
+	val += 1;
 	return val;
 }
 
@@ -258,7 +417,7 @@ Var<T> & operator-=(Var<T> & lhs, const T2 & rhs) {
 // Prefix decrement
 template <typename T>
 Var<T> & operator--(Var<T> & val) {
-	val -= T(1);
+	val -= 1;
 	return val;
 }
 
@@ -288,8 +447,8 @@ Var<T> operator*(const Var<T> & lhs, const Var<T> & rhs) {
 	return out;
 }
 
-template <typename T>
-Var<T> operator*(const Var<T> & lhs, const Numeric & rhs) {
+template <typename T, Numeric T2>
+Var<T> operator*(const Var<T> & lhs, const T2 & rhs) {
 	Var<T> out = lhs.tape->get_var();
 	out.value() = lhs.value() * rhs;
 
@@ -300,8 +459,8 @@ Var<T> operator*(const Var<T> & lhs, const Numeric & rhs) {
 	return out;
 }
 
-template <typename T>
-Var<T> operator*(const Numeric & lhs, const Var<T> & rhs) {
+template <typename T, Numeric T2>
+Var<T> operator*(const T2 & lhs, const Var<T> & rhs) {
 	return rhs * lhs;
 }
 
@@ -330,13 +489,13 @@ Var<T> operator/(const Var<T> & lhs, const Var<T> & rhs) {
 	return out;
 }
 
-template <typename T>
-Var<T> operator/(const Var<T> & lhs, const Numeric & rhs) {
-	return lhs * (1 / rhs);
+template <typename T, Numeric T2>
+Var<T> operator/(const Var<T> & lhs, const T2 & rhs) {
+	return lhs * (1.0 / rhs);
 }
 
-template <typename T>
-Var<T> operator/(const Numeric & lhs, const Var<T> & rhs) {
+template <typename T, Numeric T2>
+Var<T> operator/(const T2 & lhs, const Var<T> & rhs) {
 	Var<T> out = lhs.tape->get_var();
 	out.value() = lhs / rhs.value();
 

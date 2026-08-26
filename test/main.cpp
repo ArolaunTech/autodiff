@@ -3,7 +3,7 @@
 #include <ad/ad.h>
 
 ad::var f(ad::var x) {
-	return x + x;
+	return x / 2 + 5 * exp(x) * sin(x);
 }
 
 int main() {
