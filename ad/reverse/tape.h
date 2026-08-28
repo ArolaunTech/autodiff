@@ -271,6 +271,24 @@ Var<T> acos(const Var<T> & x);
 template <typename T>
 Var<T> atan(const Var<T> & x);
 
+template <typename T>
+Var<T> sinh(const Var<T> & x);
+
+template <typename T>
+Var<T> cosh(const Var<T> & x);
+
+template <typename T>
+Var<T> tanh(const Var<T> & x);
+
+template <typename T>
+Var<T> asinh(const Var<T> & x);
+
+template <typename T>
+Var<T> acosh(const Var<T> & x);
+
+template <typename T>
+Var<T> atanh(const Var<T> & x);
+
 /* cmath functions */
 
 template <typename T, typename T2, typename T3>
@@ -406,6 +424,36 @@ Var<T> atan(const Var<T> & x) {
 	out.tape->tape[out.index].operation = OP_ATAN;
 
 	return out;
+}
+
+template <typename T>
+Var<T> sinh(const Var<T> & x) {
+	return 0.5 * (exp(x) - exp(-x));
+}
+
+template <typename T>
+Var<T> cosh(const Var<T> & x) {
+	return 0.5 * (exp(x) + exp(-x));
+}
+
+template <typename T>
+Var<T> tanh(const Var<T> & x) {
+	return sinh(x) / cosh(x);
+}
+
+template <typename T>
+Var<T> asinh(const Var<T> & x) {
+	return log(x + sqrt(x * x + 1));
+}
+
+template <typename T>
+Var<T> acosh(const Var<T> & x) {
+	return log(x + sqrt(x * x - 1));
+}
+
+template <typename T>
+Var<T> atanh(const Var<T> & x) {
+	return 0.5 * log((1 + x) / (1 - x));
 }
 
 /* Operators */

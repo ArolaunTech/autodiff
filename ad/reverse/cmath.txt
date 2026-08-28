@@ -35,27 +35,7 @@ atan2f
 atan2l
 
 sinh
-sinhf
-sinhl
-
-cosh
-coshf
-coshl
-
-tanh
-tanhf
-tanhl
-
-asinh
-asinhf
-asinhl
-
-acosh
-acoshf
-acoshl
-
-atanh
-atanhf
+...
 atanhl
 
 erf
