@@ -2,35 +2,34 @@
 
 #include <ad/ad.h>
 
-ad::var f(ad::var x) {
-	return x / 2 + 5 * exp(x) * sin(x);
+ad::Var<ad::var> f(ad::Var<ad::var> x) {
+	return x / 2.0 + 5.0 * exp(x) / sin(x);
 }
 
 int main() {
-	ad::tape tape;
+	double xinin = 5;
 
-	ad::var x = tape.get_var();
+	ad::tape tape2;
 
-	x = 5;
+	ad::var xin = tape2.get_var(xinin);
 
-	std::cout << x.tape << "\n";
-	std::cout << x.index << "\n";
+	ad::Tape<ad::var> tape;
 
-	ad::var y = f(x);
+	ad::Var<ad::var> x = tape.get_var(xin);
 
-	std::cout << y.tape << "\n";
-	std::cout << y.index << "\n";
+	ad::Var<ad::var> y = f(x);
 
-	std::cout << "\n";
+	tape.clear_derivatives();
+	y.seed(1);
+	tape.compute_derivatives();
 
-	for (std::size_t i = 0; i < tape.size(); i++) {
-		std::cout << tape[i].value << "\n";
-		std::cout << tape[i].grad << "\n";
-		std::cout << "{\n";
-		for (std::size_t j = 0; j < tape[i].refs.size(); j++) {
-			std::cout << "\t" << tape[i].refs[j] << ",\n";
-		}
-		std::cout << "}\n";
-		std::cout << tape[i].operation << "\n\n";
-	}
+	ad::var yder = x.grad();
+
+	tape2.clear_derivatives();
+	yder.seed(1);
+	tape2.compute_derivatives();
+
+	double ddy = xin.grad();
+
+	std::cout << y.value().value() << " " << yder.value() << " " << ddy << "\n";
 }

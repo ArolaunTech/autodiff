@@ -3,6 +3,8 @@
 #include <ostream>
 #include <numbers>
 
+#include <iostream>
+
 #include "../common/concepts.h"
 
 #ifndef TAPE_H
@@ -37,15 +39,26 @@ template <typename T> struct TapeEntry;
 template <typename T> struct Tape;
 template <typename T> struct Var;
 
+/* Var concept */
+
+template <typename T>
+struct Varcheck : std::false_type {};
+
+template <typename T>
+struct Varcheck<Var<T> > : std::true_type {};
+
+template <typename T>
+concept isVar = Varcheck<T>::value;
+
 /* Structs / enums */
 
 enum Op {
 	OP_NONE, // Used for input variables
-	OP_ADD, // (Binary) Addition to a variable or constant
+	OP_ADD, // (Binary/Unary) Addition to a variable or constant
 	OP_NEG, // (Unary) Negation
 	OP_MUL, // (Binary) Multiplication of two variables
 	OP_CMUL, // (Unary) Multiplication with a constant
-	OP_DIV, // (Binary) Division of two variables
+	OP_DIV, // (Binary) Divsion of two variables
 	OP_CDIV, // (Unary) Constant divided by a variable
 	OP_EXP, // (Unary) e^x
 	OP_LOG, // (Unary) Natural logarithm
@@ -63,7 +76,7 @@ struct TapeEntry {
 	std::vector<std::size_t> refs;
 	Op operation;
 
-	TapeEntry() : value(0), grad(0), operation(OP_NONE) {
+	TapeEntry() : operation(OP_NONE) {
 		refs.clear();
 	}
 };
@@ -86,6 +99,77 @@ struct Tape {
 		return out;
 	}
 
+	template <typename T2>
+	Var<T> get_var(const T2 & x) {
+		Var<T> out = get_var();
+
+		out = x;
+
+		return out;
+	}
+
+	void clear_derivatives() {
+		for (std::size_t i = 0; i < size(); i++) {
+			// Problem: if tape[i].grad is a Var, we have not initialized it earlier.
+			// Its tape will be nullptr which results in a segfault.
+			if constexpr (isVar<T>) {
+				tape[i].grad = tape[i].value.tape->get_var();
+			}
+			tape[i].grad = 0;
+		}
+	}
+
+	void compute_derivatives() {
+		for (int i = static_cast<int>(size() - 1); i >= 0; i--) {
+			switch (tape[i].operation) {
+			case OP_NONE:
+				break;
+			case OP_ADD:
+				for (std::size_t j = 0; j < tape[i].refs.size(); j++) {
+					tape[tape[i].refs[j]].grad += tape[i].grad;
+				}
+				break;
+			case OP_NEG:
+				tape[tape[i].refs[0]].grad -= tape[i].grad;
+				break;
+			case OP_MUL:
+				tape[tape[i].refs[0]].grad += tape[i].grad * tape[tape[i].refs[1]].value;
+				tape[tape[i].refs[1]].grad += tape[i].grad * tape[tape[i].refs[0]].value;
+				break;
+			case OP_CMUL:
+				tape[tape[i].refs[0]].grad += tape[i].grad * tape[i].value / tape[tape[i].refs[0]].value;
+				break;
+			case OP_DIV:
+				tape[tape[i].refs[0]].grad += tape[i].grad / tape[tape[i].refs[1]].value;
+				tape[tape[i].refs[1]].grad -= tape[i].grad * tape[tape[i].refs[0]].value / (tape[tape[i].refs[1]].value * tape[tape[i].refs[1]].value);
+				break;
+			case OP_CDIV:
+				tape[tape[i].refs[0]].grad -= tape[i].grad * tape[i].value / tape[tape[i].refs[0]].value;
+				break;
+			case OP_EXP:
+				tape[tape[i].refs[0]].grad += tape[i].value * tape[i].grad;
+				break;
+			case OP_LOG:
+				tape[tape[i].refs[0]].grad += tape[i].grad / tape[tape[i].refs[0]].value;
+				break;
+			case OP_SIN:
+				tape[tape[i].refs[0]].grad += tape[i].grad * cos(tape[tape[i].refs[0]].value);
+				break;
+			case OP_COS:
+				tape[tape[i].refs[0]].grad -= tape[i].grad * sin(tape[tape[i].refs[0]].value);
+				break;
+			case OP_ASIN:
+				tape[tape[i].refs[0]].grad += tape[i].grad / sqrt(1 - tape[tape[i].refs[0]].value * tape[tape[i].refs[0]].value);
+				break;
+			case OP_ATAN:
+				tape[tape[i].refs[0]].grad += tape[i].grad / (1 + tape[tape[i].refs[0]].value * tape[tape[i].refs[0]].value);
+				break;
+			default:
+				std::cout << i << " " << tape[i].operation << "\n";
+			}
+		}
+	}
+
 	TapeEntry<T> & operator[](std::size_t pos) {
 		return tape[pos];
 	}
@@ -104,9 +188,21 @@ struct Var {
 		return tape->tape[index].grad;
 	}
 
-	Var<T> & operator=(const T & val) {
+	template <typename T2>
+	void seed(const T2 & val) {
+		grad() = val;
+	}
+
+	Var<T> & operator=(const Var<T> & val) {
+		tape = val.tape;
+		index = val.index;
+
+		return *this;
+	}
+
+	template <typename T2>
+	Var<T> & operator=(const T2 & val) {
 		value() = val;
-		grad() = 0;
 
 		tape->tape[index].refs.clear();
 		tape->tape[index].operation = OP_NONE;
@@ -114,17 +210,6 @@ struct Var {
 		return *this;
 	}
 };
-
-/* Var concept */
-
-template <typename T>
-struct Varcheck : std::false_type {};
-
-template <typename T>
-struct Varcheck<Var<T> > : std::true_type {};
-
-template <typename T>
-concept isVar = Varcheck<T>::value;
 
 /* cmath forward declarations */
 
@@ -475,7 +560,7 @@ Var<T> & operator*=(Var<T> & lhs, const T2 & rhs) {
 template <typename T>
 Var<T> operator/(const Var<T> & lhs, const Var<T> & rhs) {
 	if (lhs.tape != rhs.tape) {
-		throw std::runtime_error("Cannot multiply variables from different tapes!");
+		throw std::runtime_error("Cannot divide variables from different tapes!");
 	}
 
 	Var<T> out = lhs.tape->get_var();
