@@ -476,6 +476,10 @@ Var<T> atanh(const Var<T> & x) {
 // Addition
 template <typename T>
 Var<T> operator+(const Var<T> & lhs, const Var<T> & rhs) {
+	// nullptr tapes are treated like 0 values
+	if (lhs.tape == nullptr) return rhs;
+	if (rhs.tape == nullptr) return lhs;
+
 	if (lhs.tape != rhs.tape) {
 		throw std::runtime_error("Cannot add/subtract variables from different tapes!");
 	}
@@ -580,6 +584,10 @@ Var<T> operator--(Var<T> & val, int) {
 // Multiplication
 template <typename T>
 Var<T> operator*(const Var<T> & lhs, const Var<T> & rhs) {
+	// nullptr tapes are treated like 0 values
+	if (lhs.tape == nullptr) return lhs;
+	if (rhs.tape == nullptr) return rhs;
+
 	if (lhs.tape != rhs.tape) {
 		throw std::runtime_error("Cannot multiply variables from different tapes!");
 	}
@@ -622,6 +630,9 @@ Var<T> & operator*=(Var<T> & lhs, const T2 & rhs) {
 // Division
 template <typename T>
 Var<T> operator/(const Var<T> & lhs, const Var<T> & rhs) {
+	// nullptr tapes are treated like 0 values
+	if (lhs.tape == nullptr) return lhs;
+
 	if (lhs.tape != rhs.tape) {
 		throw std::runtime_error("Cannot divide variables from different tapes!");
 	}
