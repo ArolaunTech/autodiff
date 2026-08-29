@@ -180,6 +180,21 @@ struct Var {
 	Tape<T>* tape;
 	std::size_t index;
 
+	Var() {
+		tape = nullptr;
+		index = 0;
+	}
+
+	Var(const Var<T> & x) {
+		*this = x;
+	}
+
+	template <typename T2>
+	Var(const T2 & x) {
+		tape = nullptr;
+		index = 0;
+	}
+
 	T & value() const {
 		return tape->tape[index].value;
 	}
