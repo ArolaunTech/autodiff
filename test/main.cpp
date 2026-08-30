@@ -2,28 +2,44 @@
 
 #include <ad/ad.h>
 
-ad::var f(ad::var x) {
-	ad::var out = 1;
-
-	out = tan(x);
-
-	return out;
+template <typename T>
+T f(T x) {
+	return x / 2 + 5 * exp(x) / sin(x);
 }
 
 int main() {
-	ad::tape tape;
+	// Two reverse autodiffs
 
-	ad::var x = 5;
+	ad::tape tape2;
+	ad::var xin = 5;
+	tape2.register_var(xin);
+
+	ad::Tape<ad::var> tape;
+	ad::Var<ad::var> x = xin;
 	tape.register_var(x);
 
-	ad::var y = f(x);
+	ad::Var<ad::var> y = f(x);
 
 	tape.clear_derivatives();
 	y.seed(1);
 	tape.compute_derivatives();
 
-	std::cout << y.tape << "\n";
-	std::cout << y << "\n";
+	tape2.clear_derivatives();
+	x.grad().seed(1);
+	tape2.compute_derivatives();
 
+	std::cout << y << "\n";
 	std::cout << x.grad() << "\n";
+	std::cout << xin.grad() << "\n";
+
+	// Two forward autodiffs
+
+	ad::Fwd<double, 2> xfwd = 5;
+	xfwd.grads[1] = 1;
+
+	ad::Fwd<double, 2> yfwd = f(xfwd);
+
+	std::cout << yfwd << "\n";
+	std::cout << yfwd.derivative(1) << "\n";
+	std::cout << yfwd.derivative(2) << "\n";
 }

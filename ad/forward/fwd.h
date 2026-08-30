@@ -226,7 +226,7 @@ template <typename T, std::size_t N>
 Fwd<T, N> reciprocal(const Fwd<T, N> & x) {
 	Fwd<T, N> out;
 
-	out.grads[0] = 1 / x.grads[0];
+	out.grads[0] = 1.0f / x.grads[0];
 
 	for (std::size_t i = 1; i <= N; i++) {
 		for (std::size_t j = 1; j <= i; j++) {
@@ -621,7 +621,7 @@ Fwd<T, N> operator/(const T2 & lhs, const Fwd<T, N> & rhs) {
 
 template <typename T, std::size_t N, Numeric T2>
 Fwd<T, N> operator/(const Fwd<T, N> & lhs, const T2 & rhs) {
-	return lhs * (1 / rhs);
+	return lhs * (1.0f / rhs);
 }
 
 // Division assignment
