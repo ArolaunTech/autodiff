@@ -1,5 +1,5 @@
 fabs
-fabsf
+...
 fabsl
 
 fmod
@@ -130,7 +130,7 @@ nextupl
 nextdown
 nextdownf
 nextdownl
- 
+
 copysign
 copysignf
 copysignl
@@ -158,7 +158,7 @@ islessequal
 islessgreater
 
 isunordered
- 
+
 assoc_laguerre
 assoc_laguerref
 assoc_laguerrel
