@@ -15,11 +15,7 @@ remquof
 remquol
 
 fmax
-fmaxf
-fmaxl
-
-fmin
-fminf
+...
 fminl
 
 fdim
@@ -28,22 +24,6 @@ fdiml
 
 lerp
 ...
-atanl
-
-atan2
-atan2f
-atan2l
-
-sinh
-...
-atanhl
-
-erf
-erff
-erfl
-
-erfc
-erfcf
 erfcl
 
 tgamma
@@ -55,39 +35,7 @@ lgammaf
 lgammal
 
 ceil
-ceilf
-ceill
-
-floor
-floorf
-floorl
-
-trunc
-truncf
-truncl
-
-round
-roundf
-roundl
-lround
-lroundf
-lroundl
-llround
-llroundf
-llroundl
-
-nearbyint
-nearbyintf
-nearbyintl
-
-rint
-rintf
-rintl
-lrint
-lrintf
-lrintl
-llrint
-llrintf
+...
 llrintl
 
 frexp

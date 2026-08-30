@@ -58,7 +58,8 @@ enum Operation {
 	OP_SIN,
 	OP_COS,
 	OP_ASIN,
-	OP_ATAN
+	OP_ATAN,
+	OP_ERF
 };
 
 template <typename T>
@@ -127,6 +128,9 @@ struct Tape {
 			case OP_ATAN:
 				grads[tape[i].refs[0]] += grads[i] / (1 + tape[tape[i].refs[0]].value * tape[tape[i].refs[0]].value);
 				break;
+			case OP_ERF:
+				grads[tape[i].refs[0]] += grads[i] * exp(-tape[tape[i].refs[0]].value * tape[tape[i].refs[0]].value) * 2.0 / sqrt(std::numbers::pi);
+				break;
 			}
 		}
 	}
@@ -170,6 +174,12 @@ struct Var {
 /* cmath forward declations */
 template <isVar T>
 T abs(const T & x);
+
+template <isVar T>
+T fmax(const T & a, const T & b);
+
+template <isVar T>
+T fmin(const T & a, const T & b);
 
 template <typename T1, typename T2, typename T3>
 requires isVar<T1> || isVar<T2> || isVar<T3>
@@ -232,6 +242,10 @@ T acos(const T & x);
 template <isVar T>
 T atan(const T & x);
 
+template <typename T1, typename T2>
+requires isVar<T1> || isVar<T2>
+auto atan2(const T1 & y, const T2 & x);
+
 template <isVar T>
 T sinh(const T & x);
 
@@ -250,11 +264,47 @@ T acosh(const T & x);
 template <isVar T>
 T atanh(const T & x);
 
+template <isVar T>
+T erf(const T & x);
+
+template <isVar T>
+T erfc(const T & x);
+
+template <isVar T>
+T ceil(const T & x);
+
+template <isVar T>
+T floor(const T & x);
+
+template <isVar T>
+T trunc(const T & x);
+
+template <isVar T>
+T round(const T & x);
+
+template <isVar T>
+T nearbyint(const T & x);
+
+template <isVar T>
+T rint(const T & x);
+
 /* cmath functions */
 template <isVar T>
 T abs(const T & x) {
 	if (x > 0) return x;
 	return -x;
+}
+
+template <isVar T>
+T fmax(const T & a, const T & b) {
+	if (a > b) return a;
+	return b;
+}
+
+template <isVar T>
+T fmin(const T & a, const T & b) {
+	if (a < b) return a;
+	return b;
 }
 
 template <typename T1, typename T2, typename T3>
@@ -422,6 +472,15 @@ T atan(const T & x) {
 	return out;
 }
 
+template <typename T1, typename T2>
+requires isVar<T1> || isVar<T2>
+auto atan2(const T1 & y, const T2 & x) {
+	auto out = atan(-x / y);
+
+	if (y > 0) return out + 0.5 * std::numbers::pi;
+	return out - 0.5 * std::numbers::pi;
+}
+
 template <isVar T>
 T sinh(const T & x) {
 	return 0.5 * (exp(x) - exp(-x));
@@ -450,6 +509,63 @@ T acosh(const T & x) {
 template <isVar T>
 T atanh(const T & x) {
 	return 0.5 * log((1 + x) / (1 - x));
+}
+
+template <isVar T>
+T erf(const T & x) {
+	T out = erf(x.value);
+
+	if (x.tape != nullptr) {
+		out.op = OP_ERF;
+		out.refs.push_back(x.index);
+		out.tape = x.tape;
+		out.index = x.tape->size();
+
+		x.tape->tape.push_back(out);
+	}
+
+	return out;
+}
+
+template <isVar T>
+T erfc(const T & x) {
+	return 1 - erf(x);
+}
+
+template <isVar T>
+T ceil(const T & x) {
+	T out = ceil(x.value);
+	return out;
+}
+
+template <isVar T>
+T floor(const T & x) {
+	T out = floor(x.value);
+	return out;
+}
+
+template <isVar T>
+T trunc(const T & x) {
+	T out = trunc(x.value);
+	return out;
+}
+
+template <isVar T>
+T round(const T & x) {
+	T out = round(x.value);
+	return out;
+}
+
+template <isVar T>
+T nearbyint(const T & x) {
+	T out = nearbyint(x.value);
+	return out;
+}
+
+template <isVar T>
+T rint(const T & x) {
+	T out = rint(x.value);
+	return out;
 }
 
 /* Var operators */
