@@ -571,10 +571,10 @@ T rint(const T & x) {
 /* Var operators */
 
 // Addition
-template <typename T>
-Var<T> operator+(const Var<T> & lhs, const Var<T> & rhs) {
+template <isVar T>
+T operator+(const T & lhs, const T & rhs) {
 	if (lhs.tape == nullptr && rhs.tape == nullptr) {
-		Var<T> out;
+		T out;
 		out.value = lhs.value + rhs.value;
 		return out;
 	}
@@ -583,7 +583,7 @@ Var<T> operator+(const Var<T> & lhs, const Var<T> & rhs) {
 		throw std::runtime_error("Cannot add/subtract variables from different tapes!");
 	}
 
-	Var<T> out;
+	T out;
 	out.value = lhs.value + rhs.value;
 	out.op = OP_ADD;
 	out.tape = lhs.tape;
@@ -602,15 +602,15 @@ Var<T> operator+(const Var<T> & lhs, const Var<T> & rhs) {
 	return out;
 }
 
-template <typename T, Numeric T2>
-Var<T> operator+(const Var<T> & lhs, const T2 & rhs) {
-	Var<T> rhsvar = rhs;
+template <isVar T, Numeric T2>
+T operator+(const T & lhs, const T2 & rhs) {
+	T rhsvar = rhs;
 	return lhs + rhsvar;
 }
 
-template <typename T, Numeric T2>
-Var<T> operator+(const T2 & lhs, const Var<T> & rhs) {
-	Var<T> lhsvar = lhs;
+template <isVar T, Numeric T2>
+T operator+(const T2 & lhs, const T & rhs) {
+	T lhsvar = lhs;
 	return lhsvar + rhs;
 }
 
@@ -689,10 +689,10 @@ T operator--(T & val, int) {
 }
 
 // Multiplication
-template <typename T>
-Var<T> operator*(const Var<T> & lhs, const Var<T> & rhs) {
+template <isVar T>
+T operator*(const T & lhs, const T & rhs) {
 	if (lhs.tape == nullptr && rhs.tape == nullptr) {
-		Var<T> out;
+		T out;
 		out.value = lhs.value * rhs.value;
 		return out;
 	}
@@ -701,7 +701,7 @@ Var<T> operator*(const Var<T> & lhs, const Var<T> & rhs) {
 		throw std::runtime_error("Cannot multiply variables from different tapes!");
 	}
 
-	Var<T> out;
+	T out;
 	out.value = lhs.value * rhs.value;
 	out.op = OP_MUL;
 	out.tape = lhs.tape;
@@ -720,15 +720,15 @@ Var<T> operator*(const Var<T> & lhs, const Var<T> & rhs) {
 	return out;
 }
 
-template <typename T, Numeric T2>
-Var<T> operator*(const Var<T> & lhs, const T2 & rhs) {
-	Var<T> rhsvar = rhs;
+template <isVar T, Numeric T2>
+T operator*(const T & lhs, const T2 & rhs) {
+	T rhsvar = rhs;
 	return lhs * rhsvar;
 }
 
-template <typename T, Numeric T2>
-Var<T> operator*(const T2 & lhs, const Var<T> & rhs) {
-	Var<T> lhsvar = lhs;
+template <isVar T, Numeric T2>
+T operator*(const T2 & lhs, const T & rhs) {
+	T lhsvar = lhs;
 	return lhsvar * rhs;
 }
 
@@ -740,10 +740,10 @@ T & operator*=(T & lhs, const T2 & rhs) {
 }
 
 // Division
-template <typename T>
-Var<T> operator/(const Var<T> & lhs, const Var<T> & rhs) {
+template <isVar T>
+T operator/(const T & lhs, const T & rhs) {
 	if (lhs.tape == nullptr && rhs.tape == nullptr) {
-		Var<T> out;
+		T out;
 		out.value = lhs.value / rhs.value;
 		return out;
 	}
@@ -752,7 +752,7 @@ Var<T> operator/(const Var<T> & lhs, const Var<T> & rhs) {
 		throw std::runtime_error("Cannot divide variables from different tapes!");
 	}
 
-	Var<T> out;
+	T out;
 	out.value = lhs.value / rhs.value;
 	out.op = OP_DIV;
 	out.tape = rhs.tape;
@@ -772,15 +772,15 @@ Var<T> operator/(const Var<T> & lhs, const Var<T> & rhs) {
 	return out;
 }
 
-template <typename T, Numeric T2>
-Var<T> operator/(const Var<T> & lhs, const T2 & rhs) {
-	Var<T> rhsvar = rhs;
+template <isVar T, Numeric T2>
+T operator/(const T & lhs, const T2 & rhs) {
+	T rhsvar = rhs;
 	return lhs / rhsvar;
 }
 
-template <typename T, Numeric T2>
-Var<T> operator/(const T2 & lhs, const Var<T> & rhs) {
-	Var<T> lhsvar = lhs;
+template <isVar T, Numeric T2>
+T operator/(const T2 & lhs, const T & rhs) {
+	T lhsvar = lhs;
 	return lhsvar / rhs;
 }
 
@@ -798,6 +798,7 @@ bool operator==(const T & lhs, const T2 & rhs) {
 }
 
 template <typename T, isVar T2>
+requires(!isVar<T>)
 bool operator==(const T & lhs, const T2 & rhs) {
 	return lhs == rhs.value;
 }
@@ -816,6 +817,7 @@ bool operator<(const T & lhs, const T2 & rhs) {
 }
 
 template <typename T, isVar T2>
+requires(!isVar<T>)
 bool operator<(const T & lhs, const T2 & rhs) {
 	return lhs < rhs.value;
 }
